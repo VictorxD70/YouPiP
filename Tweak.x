@@ -1,4 +1,5 @@
 #import <version.h>
+#import <rootless.h>
 #import "Header.h"
 #import "../YouTubeHeader/GIMBindingBuilder.h"
 #import "../YouTubeHeader/GPBExtensionRegistry.h"
@@ -36,6 +37,10 @@ BOOL PiPDisabled = NO;
 
 extern BOOL LegacyPiP();
 extern YTHotConfig *(*InjectYTHotConfig)(void);
+
+BOOL TweakEnabled() {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:EnabledKey];
+}
 
 BOOL UsePiPButton() {
     return [[NSUserDefaults standardUserDefaults] boolForKey:PiPActivationMethodKey];
@@ -326,6 +331,14 @@ static NSMutableArray *topControls(YTMainAppControlsOverlayView *self, NSMutable
 
 %end
 
+%hook AVSampleBufferDisplayLayerPlayerController
+
+- (void)setPictureInPictureAvailable:(BOOL)available {
+    %orig(YES);
+}
+
+%end
+
 %hook MLPIPController
 
 - (void)activatePiPController {
@@ -572,12 +585,13 @@ NSBundle *YouPiPBundle() {
         if (tweakBundlePath)
             bundle = [NSBundle bundleWithPath:tweakBundlePath];
         else
-            bundle = [NSBundle bundleWithPath:@"/Library/Application Support/YouPiP.bundle"];
+            bundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/Application Support/YouPiP.bundle")];
     });
     return bundle;
 }
 
 %ctor {
+    if (!TweakEnabled()) return;
     NSBundle *tweakBundle = YouPiPBundle();
     PiPVideoPath = [tweakBundle pathForResource:@"PiPPlaceholderAsset" ofType:@"mp4"];
     PiPIconPath = [tweakBundle pathForResource:@"yt-pip-overlay" ofType:@"png"];

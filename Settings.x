@@ -1,6 +1,4 @@
-// clang-format off
-
-#import "../PSHeader/iOSVersions.h"
+#import <version.h>
 #import "Header.h"
 #import "../YouTubeHeader/YTAlertView.h"
 #import "../YouTubeHeader/YTHotConfig.h"
@@ -19,6 +17,7 @@ static const NSInteger YouPiPSection = 200;
 - (void)updateYouPiPSectionWithEntry:(id)entry;
 @end
 
+extern BOOL TweakEnabled();
 extern BOOL UsePiPButton();
 extern BOOL UseTabBarPiPButton();
 extern BOOL NoMiniPlayerPiP();
@@ -52,6 +51,16 @@ static NSString *YouPiPWarnVersionKey = @"YouPiPWarnVersionKey";
     YTSettingsViewController *delegate = [self valueForKey:@"_dataDelegate"];
     NSMutableArray *sectionItems = [NSMutableArray array];
     NSBundle *tweakBundle = YouPiPBundle();
+    YTSettingsSectionItem *enabled = [%c(YTSettingsSectionItem) switchItemWithTitle:LOC(@"ENABLED")
+        titleDescription:LOC(@"ENABLED_DESC")
+        accessibilityIdentifier:nil
+        switchOn:TweakEnabled()
+        switchBlock:^BOOL (YTSettingsCell *cell, BOOL enabled) {
+            [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:EnabledKey];
+            return YES;
+        }
+        settingItemId:0];
+    [sectionItems addObject:enabled];
     YTSettingsSectionItem *activationMethod = [%c(YTSettingsSectionItem) switchItemWithTitle:LOC(@"USE_PIP_BUTTON")
         titleDescription:LOC(@"USE_PIP_BUTTON_DESC")
         accessibilityIdentifier:nil
@@ -152,7 +161,7 @@ BOOL loadWatchNextRequest = NO;
 
 %hook YTWatchNextViewController
 
-- (void)loadWatchNextRequest {
+- (void)loadWatchNextRequest:(id)arg1 withInitialWatchNextResponse:(id)arg2 disableUnloadModel:(BOOL)arg3 {
     loadWatchNextRequest = YES;
     %orig;
     loadWatchNextRequest = NO;
